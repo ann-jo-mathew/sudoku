@@ -1,0 +1,520 @@
+/* ---------- RESET & BASICS ---------- */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+/* ---------- THEME VARIABLES ---------- */
+:root {
+    /* Light Theme - Keep calm background but standard grid */
+    --bg: #f8fafc;
+    --text: #334155;
+
+    /* Standard Sudoku Colors */
+    --cell-bg: #ffffff;
+    --prefill-bg: #f1f5f9;
+    /* Light grey for prefilled to distinguish */
+    --prefill-color: #000000;
+    /* Standard black text */
+
+    /* BORDERS */
+    --grid-outer-border: #000000;
+    --subgrid-separation: #000000;
+    /* Thick lines */
+    --cell-border: #94a3b8;
+    /* Thin lines (Slate 400 - visible but thinner) */
+
+    --accent: #64748b;
+    --accent-hover: #475569;
+    --highlight-bg: #e0f2fe;
+    --focus-bg: #bae6fd;
+    --same-num-bg: #c7d2fe;
+    /* Panel Colors */
+    --panel-bg: #f8fafc;
+    /* Lighter than prefill, distinct */
+    --panel-border: #cbd5e1;
+    --panel-text: #334155;
+    --hint-text: #64748b;
+
+    --shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+}
+
+body.dark {
+    /* Dark Theme - Deep Neutral */
+    --bg: #0f172a;
+    /* Slate 900 */
+    --text: #f1f5f9;
+    /* Slate 100 - Bright body text */
+
+    --cell-bg: #1e293b;
+    /* Slate 800 */
+    --prefill-bg: #334155;
+    /* Slate 700 */
+    --prefill-color: #93c5fd;
+    /* Light Blue */
+
+    --grid-outer-border: #64748b;
+    /* Slate 500 */
+    --subgrid-separation: #94a3b8;
+    /* Slate 400 */
+    --cell-border: #475569;
+    /* Slate 600 */
+
+    --accent: #475569;
+    --accent-hover: #64748b;
+    --highlight-bg: #1e3a8a;
+    --focus-bg: #172554;
+    --same-num-bg: #312e81;
+
+    /* Panel Dark Mode */
+    --panel-bg: #1e293b;
+    /* Matches cell bg for consistency but distinct from header */
+    --panel-border: #334155;
+    /* Subtle border */
+    --panel-text: #e2e8f0;
+    /* High contrast off-white */
+    --hint-text: #94a3b8;
+    /* Muted text */
+}
+
+/* ---------- BASE ---------- */
+body {
+    margin: 0;
+    height: 100vh;
+    /* Force full height */
+    overflow: hidden;
+    /* No scrolling on desktop */
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Outfit', 'Inter', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+h1 {
+    margin: 0 0 15px 0;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--text);
+    text-transform: uppercase;
+}
+
+#timer {
+    margin-bottom: 20px;
+    font-size: 1.2rem;
+    font-variant-numeric: tabular-nums;
+    margin-top: 10px;
+}
+
+/* ---------- GRID CONTAINER ---------- */
+#sudoku-grid {
+    display: grid;
+    /* Explicitly define 9x50px columns. Total width inside = 450px */
+    grid-template-columns: repeat(9, 50px);
+    grid-template-rows: repeat(9, 50px);
+
+    /* Ensure no extra space */
+    width: fit-content;
+    height: fit-content;
+    margin: 0 auto;
+    /* Center in its grid cell if needed */
+
+    /* 1. THICK OUTER BORDER */
+    border: 4px solid var(--grid-outer-border);
+
+    border-radius: 4px;
+    /* Slight rounding on corners */
+    background: var(--grid-outer-border);
+    /* Background fills gaps if any */
+    gap: 0;
+    box-shadow: var(--shadow);
+}
+
+/* ---------- CELLS (STANDARD) ---------- */
+input {
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    font-size: 24px;
+    /* Standard readable size */
+    font-weight: 400;
+    border: none;
+    outline: none;
+    background: var(--cell-bg);
+    color: var(--text);
+    cursor: default;
+    /* Desktop feel */
+    transition: background 0.1s;
+    font-family: inherit;
+    border-radius: 0;
+    /* Strict squares */
+
+    /* 2. THIN CELL BORDERS (Right & Bottom) */
+    border-right: 1px solid var(--cell-border);
+    border-bottom: 1px solid var(--cell-border);
+}
+
+/* Remove spin buttons */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Prefilled cells */
+input.prefilled {
+    background: var(--prefill-bg);
+    color: var(--prefill-color);
+    font-weight: 700;
+}
+
+/* Interactive States */
+input.highlighted {
+    background: var(--highlight-bg);
+}
+
+input.same-number {
+    background: var(--same-num-bg) !important;
+}
+
+input:focus {
+    background: var(--focus-bg) !important;
+    cursor: text;
+}
+
+input.hint-cell {
+    color: #10b981 !important;
+    font-weight: 800;
+}
+
+/* ---------- 3x3 SUBGRID SEPARATION ---------- */
+/* 
+   Logic for 3x3 Borders:
+   - Every 3rd column (3, 6) gets a THICK right border.
+   - Every 3rd row (19-27, 46-54) gets a THICK bottom border.
+   - We remove borders from the very last column/row (9) to respect the outer container border.
+*/
+
+/* Vertical Separation (Cols 3 & 6) */
+input:nth-child(3n) {
+    border-right: 3px solid var(--subgrid-separation);
+}
+
+/* Remove right border for last column (Col 9) to fit in container */
+input:nth-child(9n) {
+    border-right: none;
+}
+
+/* Horizontal Separation (Rows 3 & 6) */
+/* Row 3 indices: 19 to 27 */
+/* Row 6 indices: 46 to 54 */
+input:nth-child(n+19):nth-child(-n+27),
+input:nth-child(n+46):nth-child(-n+54) {
+    border-bottom: 3px solid var(--subgrid-separation);
+}
+
+/* Remove bottom border for last row (Row 9, indices 73-81) */
+input:nth-child(n+73) {
+    border-bottom: none;
+}
+
+/* ---------- BUTTONS ---------- */
+.buttons {
+    margin-top: 30px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+}
+
+select {
+    padding: 10px 16px;
+    font-size: 15px;
+    border-radius: 8px;
+    border: 1px solid var(--accent);
+    background: var(--bg);
+    color: var(--text);
+    cursor: pointer;
+    font-family: inherit;
+    outline: none;
+    font-weight: 500;
+}
+
+button {
+    padding: 10px 20px;
+    font-size: 15px;
+    font-weight: 500;
+    background: var(--accent);
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+button:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+/* Floating Theme Toggle (Top Right) */
+#theme-toggle {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: transparent;
+    color: var(--text);
+    padding: 8px;
+    border-radius: 50%;
+    box-shadow: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#theme-toggle:hover {
+    background: var(--prefill-bg);
+    color: var(--text);
+    transform: rotate(15deg);
+}
+
+/* Message */
+#message {
+    margin-top: 0;
+    padding-bottom: 0;
+    font-size: 16px;
+    font-weight: 500;
+    height: auto;
+    /* remove fixed height */
+    color: var(--accent-hover);
+}
+
+
+
+
+/* ================= CSS GRID LAYOUT ================= */
+
+/* 
+   Grid Layout Strategy:
+   - 2 Columns: 1st is Auto (Grid), 2nd is ~320px (Panel)
+   - 3 Rows: Header, Main Content, Footer (Buttons/Message)
+*/
+.game-container {
+    display: grid;
+    grid-template-columns: auto 300px;
+    /* Slightly reduced panel width */
+    grid-template-rows: auto auto auto auto;
+    padding-bottom: 10px;
+    gap: 10px 40px;
+    /* Increased breathing room */
+    justify-content: center;
+    max-width: 1000px;
+    /* Limit max width for compactness */
+    width: 100%;
+    padding: 20px;
+    /* More padding around edge */
+}
+
+/* Header: Title & Timer (Top Left) */
+.game-header {
+    grid-column: 1;
+    grid-row: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 0;
+    margin-top: 2px;
+    /* Let grid gap handle spacing */
+}
+
+.game-header h1 {
+    margin-bottom: 5px;
+    /* Closer to timer */
+}
+
+.game-header #timer {
+    margin-bottom: 0px;
+}
+
+/* Sudoku Grid (Middle Left) */
+#sudoku-grid {
+    grid-column: 1;
+    grid-row: 2;
+    /* Removed individual margin since Grid handles gap */
+}
+
+/* Side Panel (Spanning Middle & Bottom Right or just Middle) */
+.side-panel {
+    grid-column: 2;
+    grid-row: 2;
+    /* Starts exactly aligned with grid */
+    grid-row-end: span 2;
+    /* Can span down to cover button area if content is long */
+    align-self: start;
+    /* Ensures strict top alignment */
+
+    width: 100%;
+    /* Fills the 320px col */
+    height: fit-content;
+
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    /* Subtle border */
+    border-radius: 8px;
+    padding: 24px;
+    /* Restored comfortable padding */
+    color: var(--panel-text);
+    box-shadow: var(--shadow);
+    text-align: left;
+    margin-top: 0;
+    /* Removed manual offset */
+}
+
+/* Buttons (Bottom Left) */
+.buttons {
+    grid-column: 1;
+    grid-row: 3;
+    width: 100%;
+    /* Ensure it spans the grid width if needed */
+    margin-top: 0;
+    /* Grid gap handles spacing */
+    justify-content: center;
+    /* Center buttons relative to grid */
+}
+
+/* Message (Bottom Left below buttons, or separate row) */
+.message-container {
+    grid-column: 1;
+    grid-row: 4;
+    text-align: center;
+    margin-bottom: 0;
+}
+
+/* ----- Panel Styling Updates ----- */
+.side-panel h2 {
+    margin-top: 0;
+    font-size: 1.1rem;
+    /* Slightly smaller for balance */
+    letter-spacing: 1px;
+    color: var(--text);
+    /* Use main text color, or specific header color */
+    font-weight: 700;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+    opacity: 0.9;
+}
+
+.side-panel ul {
+    padding-left: 0;
+    list-style: none;
+    line-height: 1.7;
+    /* Improved readability */
+    font-size: 0.95rem;
+    margin-bottom: 20px;
+}
+
+.side-panel li {
+    margin-bottom: 12px;
+    color: var(--panel-text);
+}
+
+.side-panel strong {
+    color: var(--text);
+    /* Ensure headings stand out */
+    font-weight: 600;
+}
+
+.hint-counter {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid var(--panel-border);
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--hint-text);
+    /* Muted adaptation */
+    display: flex;
+    justify-content: flex-start;
+    gap: 15px;
+}
+
+.instruction-note {
+    font-size: 0.85rem;
+    margin-top: 15px;
+    color: var(--hint-text);
+    font-style: italic;
+}
+
+/* Validation Error State */
+input.invalid-cell {
+    background: #fecaca !important;
+    color: #991b1b !important;
+}
+
+body.dark input.invalid-cell {
+    background: #7f1d1d !important;
+    color: #fecaca !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+    body {
+        height: auto;
+        overflow-y: auto;
+        padding: 20px 0;
+    }
+
+    .game-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .side-panel {
+        width: 100%;
+        max-width: 458px;
+        /* Match grid width (450 + 8) */
+        margin-top: 10px;
+        margin: auto;
+        grid-column: auto;
+        grid-row: auto;
+    }
+
+    .buttons {
+        grid-column: auto;
+        grid-row: auto;
+    }
+
+    .game-header {
+        grid-column: auto;
+        grid-row: auto;
+    }
+
+    #sudoku-grid {
+        grid-column: auto;
+        grid-row: auto;
+        width: 100%;
+        max-width: 458px;
+        grid-template-columns: repeat(9, 1fr);
+        grid-template-rows: repeat(9, 1fr);
+        aspect-ratio: 1;
+    }
+
+    .message-container {
+        margin-top: 10px;
+        grid-column: auto;
+        grid-row: auto;
+    }
+}
